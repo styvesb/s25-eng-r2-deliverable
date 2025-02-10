@@ -7,7 +7,7 @@ import { createBrowserSupabaseClient } from "@/lib/client-utils";
 import { useRouter } from "next/navigation";
 import AddSpeciesDialog from "./add-species-dialog";
 import SpeciesCard from "./species-card";
-import SpeciesFilter from "./SpeciesFilter"; // import the filter component
+import SpeciesFilter from "./SpeciesFilter";
 
 interface Species {
   id: number;

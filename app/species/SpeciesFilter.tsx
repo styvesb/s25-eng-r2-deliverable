@@ -27,8 +27,6 @@ interface SpeciesFilterProps {
   setFilteredSpecies: React.Dispatch<React.SetStateAction<Species[]>>;
 }
 
-// You can extend the list of kingdoms (or other criteria) as needed.
-// "All" is used as an option to show all species.
 const kingdoms = ["All", "Animalia", "Plantae", "Fungi", "Protista", "Archaea", "Bacteria"];
 
 export default function SpeciesFilter({ species, setFilteredSpecies }: SpeciesFilterProps) {

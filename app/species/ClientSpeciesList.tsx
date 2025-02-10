@@ -27,8 +27,6 @@ export default function ClientSpeciesList({
 
   };
 
-
-
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">

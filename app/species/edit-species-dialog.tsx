@@ -24,7 +24,6 @@ import { z } from "zod";
 import type { Database } from "@/lib/schema";
 type Species = Database["public"]["Tables"]["species"]["Row"];
 
-// Reuse the same schema you used in AddSpeciesDialog
 const kingdoms = z.enum(["Animalia", "Plantae", "Fungi", "Protista", "Archaea", "Bacteria"]);
 
 const speciesSchema = z.object({

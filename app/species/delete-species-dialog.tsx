@@ -12,18 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { createBrowserSupabaseClient } from "@/lib/client-utils";
-// Importing useRouter in case you want to try other router methods in the future.
-// import { useRouter } from "next/navigation";
 
 interface DeleteSpeciesDialogProps {
   speciesId: string;
-  // removeSpeciesFromState prop removed.
 }
 
 export function DeleteSpeciesDialog({ speciesId }: DeleteSpeciesDialogProps) {
   const [open, setOpen] = useState(false);
   const supabase = createBrowserSupabaseClient();
-  // const router = useRouter(); // Not used since router.refresh() isn't working as desired.
 
   const handleDelete = async () => {
     const { error } = await supabase

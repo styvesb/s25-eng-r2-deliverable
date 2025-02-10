@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { Database } from "@/lib/schema";
 import { SpeciesDetailsDialog } from "./species-details-dialog";
 import { EditSpeciesDialog } from "./edit-species-dialog";
-import { DeleteSpeciesDialog } from "./delete-species-dialog"; // <-- import it
+import { DeleteSpeciesDialog } from "./delete-species-dialog";
 
 type Species = Database["public"]["Tables"]["species"]["Row"];
 
@@ -12,13 +12,12 @@ interface SpeciesCardProps {
   species: Species;
   currentUserId: string;
   updateSpeciesInState?: (updatedSpecies: Species) => void;
-  removeSpeciesFromState?: (speciesId: string) => void; // add optional for clarity
+  removeSpeciesFromState?: (speciesId: string) => void;
 }
 
 export default function SpeciesCard({
   species,
   currentUserId,
-  removeSpeciesFromState,
 }: SpeciesCardProps) {
   const isAuthor = species.author === currentUserId;
 
@@ -51,11 +50,7 @@ export default function SpeciesCard({
       {isAuthor && (
   <div className="mt-3 flex items-center justify-between gap-2">
     <EditSpeciesDialog species={species} />
-    {removeSpeciesFromState && (
-      <DeleteSpeciesDialog
-        speciesId={String(species.id)}
-      />
-    )}
+    <DeleteSpeciesDialog speciesId={String(species.id)} />
   </div>
 )}
 
