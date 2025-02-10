@@ -1,6 +1,5 @@
 "use client";
 
-import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,14 +17,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { createBrowserSupabaseClient } from "@/lib/client-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, type BaseSyntheticEvent } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-// Define kingdom enum for use in Zod schema and displaying dropdown options in the form
+import type { Database } from "@/lib/schema";
+type Species = Database["public"]["Tables"]["species"]["Row"];
+
+// Reuse the same schema you used in AddSpeciesDialog
 const kingdoms = z.enum(["Animalia", "Plantae", "Fungi", "Protista", "Archaea", "Bacteria"]);
 
-// Use Zod to define the shape + requirements of a Species entry; used in form validation
 const speciesSchema = z.object({
   scientific_name: z
     .string()
@@ -35,7 +36,6 @@ const speciesSchema = z.object({
   common_name: z
     .string()
     .nullable()
-    // Transform empty string or only whitespace input to null before form submission, and trim whitespace otherwise
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
   kingdom: kingdoms,
   total_population: z.number().int().positive().min(1).nullable(),
@@ -43,88 +43,84 @@ const speciesSchema = z.object({
     .string()
     .url()
     .nullable()
-    // Transform empty string or only whitespace input to null before form submission, and trim whitespace otherwise
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
   description: z
     .string()
     .nullable()
-    // Transform empty string or only whitespace input to null before form submission, and trim whitespace otherwise
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
 });
 
 type FormData = z.infer<typeof speciesSchema>;
 
-// Default values for the form fields.
-const defaultValues: Partial<FormData> = {
-  scientific_name: "",
-  common_name: null,
-  kingdom: "Animalia",
-  total_population: null,
-  image: null,
-  description: null,
-};
+interface EditSpeciesDialogProps {
+  species: Species;
+}
 
-export default function AddSpeciesDialog({ userId }: { userId: string }) {
-  const [open, setOpen] = useState<boolean>(false);
+export function EditSpeciesDialog({ species }: EditSpeciesDialogProps) {
+  const [open, setOpen] = useState(false);
+  const supabase = createBrowserSupabaseClient();
 
+  // Pre-fill the form with the existing species data
   const form = useForm<FormData>({
     resolver: zodResolver(speciesSchema),
-    defaultValues,
+    defaultValues: {
+      scientific_name: species.scientific_name ?? "",
+      common_name: species.common_name,
+      kingdom: species.kingdom ?? "Animalia",
+      total_population: species.total_population,
+      image: species.image,
+      description: species.description,
+    },
     mode: "onChange",
   });
 
   const onSubmit = async (input: FormData) => {
-    const supabase = createBrowserSupabaseClient();
-    const { error } = await supabase.from("species").insert([
-      {
-        author: userId,
-        common_name: input.common_name,
-        description: input.description,
-        kingdom: input.kingdom,
+    // Attempt to update the existing species by ID
+    const { error } = await supabase
+      .from("species")
+      .update({
         scientific_name: input.scientific_name,
+        common_name: input.common_name,
+        kingdom: input.kingdom,
         total_population: input.total_population,
         image: input.image,
-      },
-    ]);
+        description: input.description,
+      })
+      .eq("id", species.id); // match the row by its ID
 
     if (error) {
       return toast({
-        title: "Something went wrong.",
+        title: "Error updating species",
         description: error.message,
         variant: "destructive",
       });
     }
 
-    // Reset form values to the default (empty) values.
-    form.reset(defaultValues);
-    setOpen(false);
+    // If successful
+    toast({
+      title: "Species updated",
+      description: "Successfully updated " + input.scientific_name,
+    });
 
-    // Force a full page reload so the new species is visible.
     window.location.reload();
 
-    return toast({
-      title: "New species added!",
-      description: "Successfully added " + input.scientific_name + ".",
-    });
+    setOpen(false); // Close the modal
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">
-          <Icons.add className="mr-3 h-5 w-5" />
-          Add Species
+        <Button variant="outline" className="w-full min-w-[100px]">
+          Edit
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-screen overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add Species</DialogTitle>
-          <DialogDescription>
-            Add a new species here. Click &quot;Add Species&quot; below when you&apos;re done.
-          </DialogDescription>
+          <DialogTitle>Edit Species</DialogTitle>
+          <DialogDescription>Update the species data and click &quot;Save Changes&quot;.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)}>
+          <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}>
             <div className="grid w-full items-center gap-4">
               <FormField
                 control={form.control}
@@ -161,7 +157,7 @@ export default function AddSpeciesDialog({ userId }: { userId: string }) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Kingdom</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(kingdoms.parse(value))} value={field.value}>
+                    <Select onValueChange={(val) => field.onChange(kingdoms.parse(val))} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a kingdom" />
@@ -234,7 +230,7 @@ export default function AddSpeciesDialog({ userId }: { userId: string }) {
                       <FormControl>
                         <Textarea
                           value={value ?? ""}
-                          placeholder="The guinea pig or domestic guinea pig, also known as the cavy or domestic cavy, is a species of rodent belonging to the genus Cavia in the family Caviidae."
+                          placeholder="The guinea pig or domestic guinea pig, also known as the cavy or domestic cavy..."
                           {...rest}
                         />
                       </FormControl>
@@ -243,12 +239,13 @@ export default function AddSpeciesDialog({ userId }: { userId: string }) {
                   );
                 }}
               />
-              <div className="flex">
-                <Button type="submit" className="ml-1 mr-1 flex-auto">
-                  Add Species
+
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">
+                  Save Changes
                 </Button>
                 <DialogClose asChild>
-                  <Button type="button" className="ml-1 mr-1 flex-auto" variant="secondary">
+                  <Button type="button" variant="secondary" className="flex-1">
                     Cancel
                   </Button>
                 </DialogClose>
